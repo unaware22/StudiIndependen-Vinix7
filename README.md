@@ -20,11 +20,6 @@ Repositori ini berisi hasil analisis dan simulasi keamanan pada cluster Kubernet
 
 ---
 
-## DFD Skenario 1
-![Gambar 4.1 Data Flow Diagram Skenario HostPath Attack](assets/gambardfd1.png)
-
----
-
 ## Skenario 1: HostPath Attack
 Ancaman: *Information Disclosure*, *Tampering*, dan *Elevation of Privilege*
 
@@ -35,6 +30,8 @@ Pada skenario ini, pod jahat dikonfigurasi menggunakan volume `hostPath` yang me
 * **Penjelasan Gambar 4.1**: DFD menunjukkan alur penyerang membuat *malicious pod* yang melakukan mounting direktori host. Dari dalam pod, penyerang membaca kredensial `/etc/shadow`, meng-eksfiltrasi data ke luar, menyisipkan public key ke file `authorized_keys` host, hingga mendapatkan akses persisten via SSH.
 
 ### Tahapan Akses & Eksfiltrasi Data
+<img width="512" height="38" alt="image" src="https://github.com/user-attachments/assets/7eb5e734-6ead-4074-9585-7112bd6ec069" />
+
 ![Gambar 4.2 Konfigurasi Pod Manifest](assets/gambar-4-2.png)
 * **Penjelasan Gambar 4.2**: Manifes YAML pod `skenario1` berbasis `alpine:latest` dengan mount `hostPath` ke direktori host `/etc`, `/var`, dan `/home`.
 
@@ -62,11 +59,6 @@ Pada skenario ini, pod jahat dikonfigurasi menggunakan volume `hostPath` yang me
 
 ![Gambar 4.10 Akses Persisten Pasca Penghapusan](assets/gambar-4-10.png)
 * **Penjelasan Gambar 4.10**: Penyerang terbukti masih bisa mengakses host via SSH meskipun pod dan namespace pendukung di Kubernetes sudah dihapus.
-
----
-
-## DFD Skenario 2
-![Gambar 4.1 Data Flow Diagram Skenario HostPath Attack](assets/gambardfd2.png)
 
 ---
 
