@@ -37,6 +37,8 @@ Pada skenario ini, pod jahat (`skenariol`) dikonfigurasi di namespace `security-
 
 <p align="center">
   <img src="Assets/langkah1.png" width="500" alt="Langkah 1" />
+</p>
+<p align="center">
   <img src="Assets/langkah2.png" width="500" alt="Langkah 2" />
 </p>
 <p>
