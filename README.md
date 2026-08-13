@@ -27,7 +27,7 @@ Pada skenario ini, pod jahat (`skenariol`) dikonfigurasi di namespace `security-
 
 ### Alur Serangan (Data Flow Diagram)
 <p align="center">
-  <img src="Assets/DFD1.png" width="500" alt="Langkah 1" />
+  <img src="Assets/DFD1.png" width="700" alt="Langkah 1" />
 </p>
 <p>
   <b>Penjelasan DFD:</b> Diagram Alur Data (DFD) menunjukkan alur di mana penyerang mendeploy pod jahat dengan mount direktori host, membaca file kredensial <code>/etc/shadow</code>, mengeksfiltrasi data via Netcat ke Kali Linux, menyisipkan public key SSH ke dalam <code>authorized_keys</code> milik user <code>ubuntu</code>, hingga memperoleh akses persisten langsung ke sistem host via SSH.
@@ -36,24 +36,24 @@ Pada skenario ini, pod jahat (`skenariol`) dikonfigurasi di namespace `security-
 ### Tahapan Akses & Eksfiltrasi Data
 
 <p align="center">
-  <img src="Assets/langkah1.png" width="500" alt="Langkah 1" />
+  <img src="Assets/langkah1.png" width="700" alt="Langkah 1" />
 </p>
 <p align="center">
-  <img src="Assets/langkah2.png" width="500" alt="Langkah 2" />
+  <img src="Assets/langkah2.png" width="700" alt="Langkah 2" />
 </p>
 <p>
   <b>Penjelasan gambar diatas:</b> Pembuatan namespace <code>security-audit-lab</code> dan penyiapan manifes pod <code>skenariol</code> berbasis <code>alpine:latest</code> dengan mount point <code>hostPath</code> yang mengarahkan <code>/etc</code> ke <code>/mnt/host-etc</code>, <code>/var</code> ke <code>/mnt/host-var</code>, dan <code>/home</code> ke <code>/mnt/host-home</code>.
 </p>
 
 <p align="center">
-  <img src="Assets/langkah3.png" width="500" alt="Langkah 3" />
+  <img src="Assets/langkah3.png" width="700" alt="Langkah 3" />
 </p>
 <p>
   <b>Penjelasan gambar diatas:</b> Penyerang mengeksekusi shell ke dalam pod menggunakan <code>kubectl exec -it skenariol -n security-audit-lab sh</code> dan mengakses isi file <code>/mnt/host-etc/shadow</code> untuk mengintip hash password akun sistem host.
 </p>
 
 <p align="center">
-  <img src="Assets/langkah4.png" width="500" alt="Langkah 4" />
+  <img src="Assets/langkah4.png" width="700" alt="Langkah 4" />
 </p>
   <b>Penjelasan gambar diatas:</b> Penyerang membuka listener jaringan dengan perintah `nc -tvnp 4444` pada mesin Kali Linux (`100.65.32.116`) untuk mendengarkan koneksi data masuk dari pod[cite: 1].
 
