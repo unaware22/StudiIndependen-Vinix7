@@ -35,9 +35,9 @@ Pada skenario ini, pod jahat (`skenariol`) dikonfigurasi di namespace `security-
 
 ### Tahapan Akses & Eksfiltrasi Data
 
-<p>
-  Assets/langkah1.png
-  Assets/langkah2.png
+<p align="center">
+  <img src="Assets/langkah1.png" width="500" alt="Langkah 1" />
+  <img src="Assets/langkah2.png" width="500" alt="Langkah 2" />
 </p>
 <p>
   <b>Penjelasan gambar diatas:</b> Pembuatan namespace <code>security-audit-lab</code> dan penyiapan manifes pod <code>skenariol</code> berbasis <code>alpine:latest</code> dengan mount point <code>hostPath</code> yang mengarahkan <code>/etc</code> ke <code>/mnt/host-etc</code>, <code>/var</code> ke <code>/mnt/host-var</code>, dan <code>/home</code> ke <code>/mnt/host-home</code>.
