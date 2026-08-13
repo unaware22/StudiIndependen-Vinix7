@@ -26,12 +26,10 @@ Ancaman: *Information Disclosure*, *Tampering*, dan *Elevation of Privilege*
 Pada skenario ini, pod jahat dikonfigurasi menggunakan volume `hostPath` yang mengarah langsung ke direktori sensitif host (`/etc`, `/var`, `/home`).
 
 ### Alur Serangan (Data Flow Diagram)
-![Gambar 4.1 Data Flow Diagram Skenario HostPath Attack](assets/gambar-4-1.png)
+![Gambar 4.1 Data Flow Diagram Skenario HostPath Attack](<img width="1118" height="557" alt="image" src="https://github.com/user-attachments/assets/28645067-eff3-4faa-bc1b-0877015dcbad" />)
 * **Penjelasan Gambar 4.1**: DFD menunjukkan alur penyerang membuat *malicious pod* yang melakukan mounting direktori host. Dari dalam pod, penyerang membaca kredensial `/etc/shadow`, meng-eksfiltrasi data ke luar, menyisipkan public key ke file `authorized_keys` host, hingga mendapatkan akses persisten via SSH.
 
 ### Tahapan Akses & Eksfiltrasi Data
-<img width="512" height="38" alt="image" src="https://github.com/user-attachments/assets/7eb5e734-6ead-4074-9585-7112bd6ec069" />
-
 ![Gambar 4.2 Konfigurasi Pod Manifest](assets/gambar-4-2.png)
 * **Penjelasan Gambar 4.2**: Manifes YAML pod `skenario1` berbasis `alpine:latest` dengan mount `hostPath` ke direktori host `/etc`, `/var`, dan `/home`.
 
