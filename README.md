@@ -27,7 +27,7 @@ Pada skenario ini, pod jahat (`skenariol`) dikonfigurasi di namespace `security-
 
 ### Alur Serangan (Data Flow Diagram)
 <p align="center">
-  <img width="1118" height="557" alt="DFD Skenario 1" src="https://github.com/user-attachments/assets/01514363-a5d5-4942-b7dc-c4141381cd6b" />
+  Assets/langkah1.png
 </p>
 <p>
   <b>Penjelasan DFD:</b> Diagram Alur Data (DFD) menunjukkan alur di mana penyerang mendeploy pod jahat dengan mount direktori host, membaca file kredensial <code>/etc/shadow</code>, mengeksfiltrasi data via Netcat ke Kali Linux, menyisipkan public key SSH ke dalam <code>authorized_keys</code> milik user <code>ubuntu</code>, hingga memperoleh akses persisten langsung ke sistem host via SSH.
@@ -36,7 +36,8 @@ Pada skenario ini, pod jahat (`skenariol`) dikonfigurasi di namespace `security-
 ### Tahapan Akses & Eksfiltrasi Data
 
 <p>
-  <img width="512" alt="Pod Manifest Skenario 1" src="https://github.com/user-attachments/assets/6522bf11-25f6-4ef9-a3d4-190725e24aa1" />
+  Assets/langkah1.png
+  Assets/langkah2.png
 </p>
 <p>
   <b>Penjelasan gambar diatas:</b> Pembuatan namespace <code>security-audit-lab</code> dan penyiapan manifes pod <code>skenariol</code> berbasis <code>alpine:latest</code> dengan mount point <code>hostPath</code> yang mengarahkan <code>/etc</code> ke <code>/mnt/host-etc</code>, <code>/var</code> ke <code>/mnt/host-var</code>, dan <code>/home</code> ke <code>/mnt/host-home</code>.
