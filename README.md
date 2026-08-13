@@ -26,14 +26,14 @@ Ancaman: *Information Disclosure*, *Tampering*, dan *Elevation of Privilege*
 Pada skenario ini, pod jahat dikonfigurasi menggunakan volume `hostPath` yang mengarah langsung ke direktori sensitif host (`/etc`, `/var`, `/home`).
 
 ### Alur Serangan (Data Flow Diagram)
-![Gambar 4.1 - Data Flow Diagram Skenario HostPath Attack](https://github.com/user-attachments/assets/50b990a9-d18b-46bc-8d74-a75802e2ffa3)
+<img width="1118" height="557" alt="image" src="https://github.com/user-attachments/assets/01514363-a5d5-4942-b7dc-c4141381cd6b" />
 Penjelasan gambar diatas: DFD menunjukkan alur penyerang membuat malicious pod yang melakukan mounting direktori host, membaca kredensial `/etc/shadow`, meng-eksfiltrasi data, menyisipkan public key ke file `authorized_keys` host, hingga mendapatkan akses persisten via SSH.
 
 ### Tahapan Akses & Eksfiltrasi Data
-![Gambar 4.2 - Konfigurasi Pod Manifest](https://github.com/user-attachments/assets/6e640b7b-3ed7-48ec-88f6-7fad1e42ad8e)
+<img width="512" height="178" alt="image" src="https://github.com/user-attachments/assets/6522bf11-25f6-4ef9-a3d4-190725e24aa1" />
 Penjelasan gambar diatas: Manifes YAML pod `skenario1` berbasis `alpine:latest` dengan mount `hostPath` ke direktori host `/etc`, `/var`, dan `/home`.
 
-![Gambar 4.3 - Akses Shell dan File Shadow](<img width="512" height="121" alt="image" src="https://github.com/user-attachments/assets/c7c4abce-33ca-4e4d-8667-e61ca228b5e5" />)
+<img width="512" height="121" alt="image" src="https://github.com/user-attachments/assets/8fc315fc-e656-4faf-8e66-443a85a7d326" />
 Penjelasan gambar diatas: Penyerang menggunakan perintah `kubectl exec` untuk masuk ke shell pod dan membaca isi file sensitif `/etc/shadow` host.
 
 ![Gambar 4.4 - Pembukaan Port Listener](LINK_GAMBAR_DISINI)
