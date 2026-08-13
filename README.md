@@ -30,11 +30,20 @@ Pada skenario ini, pod jahat dikonfigurasi menggunakan volume `hostPath` yang me
 Penjelasan gambar diatas: DFD menunjukkan alur penyerang membuat malicious pod yang melakukan mounting direktori host, membaca kredensial `/etc/shadow`, meng-eksfiltrasi data, menyisipkan public key ke file `authorized_keys` host, hingga mendapatkan akses persisten via SSH.
 
 ### Tahapan Akses & Eksfiltrasi Data
-<img width="512" height="178" alt="image" src="https://github.com/user-attachments/assets/6522bf11-25f6-4ef9-a3d4-190725e24aa1" />
-Penjelasan gambar diatas: Manifes YAML pod `skenario1` berbasis `alpine:latest` dengan mount `hostPath` ke direktori host `/etc`, `/var`, dan `/home`.
 
-<img width="512" height="121" alt="image" src="https://github.com/user-attachments/assets/8fc315fc-e656-4faf-8e66-443a85a7d326" />
-Penjelasan gambar diatas: Penyerang menggunakan perintah `kubectl exec` untuk masuk ke shell pod dan membaca isi file sensitif `/etc/shadow` host.
+<p>
+  <img width="512" alt="image" src="https://github.com/user-attachments/assets/6522bf11-25f6-4ef9-a3d4-190725e24aa1" />
+</p>
+<p>
+  Penjelasan gambar diatas: Manifes YAML pod <code>skenario1</code> berbasis <code>alpine:latest</code> dengan mount <code>hostPath</code> ke direktori host <code>/etc</code>, <code>/var</code>, dan <code>/home</code>.
+</p>
+
+<p>
+  <img width="512" alt="image" src="https://github.com/user-attachments/assets/8fc315fc-e656-4faf-8e66-443a85a7d326" />
+</p>
+<p>
+  Penjelasan gambar diatas: Penyerang menggunakan perintah <code>kubectl exec</code> untuk masuk ke shell pod dan membaca isi file sensitif <code>/etc/shadow</code> host.
+</p>
 
 ![Gambar 4.4 - Pembukaan Port Listener](LINK_GAMBAR_DISINI)
 Penjelasan gambar diatas: Penyerang membuka listener jaringan dengan `nc -lvnp 4444` pada mesin Kali Linux untuk menerima data curian.
